@@ -20,7 +20,7 @@ initialize_variables() {
     elif test -d "$GKI_ROOT/drivers"; then
          DRIVER_DIR="$GKI_ROOT/drivers"
     else
-        return
+        DRIVER_DIR=""
     fi
 
     DRIVER_MAKEFILE=$DRIVER_DIR/Makefile
@@ -30,7 +30,7 @@ initialize_variables() {
 # Reverts modifications made by this script (for all integration Y, M, M-OUT )
 perform_cleanup() {
     echo "[+] Cleaning up..."
-    if [ -n "${DRIVER_MAKEFILE+x}" ]; then
+    if [ -n "$DRIVER_DIR" ]; then
         [ -L "$DRIVER_DIR/memkernel" ] && rm "$DRIVER_DIR/memkernel" && echo "[-] Symlink removed."
         grep -q "memkernel" "$DRIVER_MAKEFILE" && sed -i '/memkernel/d' "$DRIVER_MAKEFILE" && echo "[-] Makefile reverted."
         grep -q "drivers/memkernel/Kconfig" "$DRIVER_KCONFIG" && sed -i '/drivers\/memkernel\/Kconfig/d' "$DRIVER_KCONFIG" && echo "[-] Kconfig reverted."
@@ -42,7 +42,7 @@ perform_cleanup() {
 # Generates and inserts a random 6 char string to MemKernel/kernel/entry.c as driver device name
 insert_random_dev_name() {
     local random_name
-    if [ -n "$1" ]; then
+    if [ -n "${1:-}" ]; then
         random_name="$1"
     else
         random_name=$(tr -dc 'a-z' </dev/urandom | (head -c 6))
@@ -54,7 +54,7 @@ insert_random_dev_name() {
 
 # Sets up or update MemKernel environment for all integration (Y, M, M-OUT)
 setup_memkernel() {
-    if [ "$1" != "M-OUT" ] && [ -z "${DRIVER_MAKEFILE+x}" ]; then
+    if [ "$1" != "M-OUT" ] && [ -z "$DRIVER_DIR" ]; then
         echo '[ERROR] "drivers/" directory not found.'
         exit 127;
     fi
@@ -78,7 +78,7 @@ setup_memkernel() {
         grep -q "memkernel" "$DRIVER_MAKEFILE" || printf "\nobj-\$(CONFIG_MEMKERNEL) += memkernel/\n" >> "$DRIVER_MAKEFILE" && echo "[+] Modified Makefile."
         grep -q "source \"drivers/memkernel/Kconfig\"" "$DRIVER_KCONFIG" || sed -i "/endmenu/i\source \"drivers/memkernel/Kconfig\"" "$DRIVER_KCONFIG" && echo "[+] Modified Kconfig."
     fi
-    if [ -n "$2" ]; then
+    if [ "$#" -ge 2 ]; then
         insert_random_dev_name "$2"
     else
         insert_random_dev_name
