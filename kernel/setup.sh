@@ -49,7 +49,7 @@ insert_random_dev_name() {
     fi
     sed -i "s/#define DEVICE_NAME \".*\"/#define DEVICE_NAME \"$random_name\"/" "$GKI_ROOT/MemKernel/kernel/entry.c"
     sed -i "s|#define DEVICE_NAME \"/dev/.*\"|#define DEVICE_NAME \"/dev/$random_name\"|" "$GKI_ROOT/MemKernel/user/driver.hpp"
-    echo -e "\e[36mRandom Device Name: $random_name\e[0m"
+    echo -e "\e[36mDevice Name: $random_name\e[0m"
 }
 
 # Sets up or update MemKernel environment for all integration (Y, M, M-OUT)
