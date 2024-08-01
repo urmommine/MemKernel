@@ -40,7 +40,7 @@ phys_addr_t translate_linear_address(struct mm_struct *mm, uintptr_t va)
 	}
 	pud = pud_offset(p4d, va);
 #else
-    pud = pud_offset(p4d, va);
+    pud = pud_offset(pgd, va);
 #endif
 	if (pud_none(*pud) || pud_bad(*pud)) {
 		return 0;
