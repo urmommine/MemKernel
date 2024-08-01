@@ -70,6 +70,9 @@ setup_memkernel() {
     if [ "$1" != "M-OUT" ]; then
         if [ "$1" = "M" ]; then
             sed -i 's/default y/default m/' kernel/Kconfig
+        elif [ "$1" != "Y" ]; then
+            echo '[ERROR] "First argument not valid. should be any of these: Y, M, M-OUT"
+            exit 128;
         fi
         cd "$DRIVER_DIR"
         ln -sf "$(realpath --relative-to="$DRIVER_DIR" "$GKI_ROOT/MemKernel/kernel")" "memkernel" && echo "[+] Symlink created."
