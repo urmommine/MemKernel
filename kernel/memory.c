@@ -62,7 +62,7 @@ phys_addr_t translate_linear_address(struct mm_struct *mm, uintptr_t va)
 	return page_addr + page_offset;
 }
 
-#if !defined(ARCH_HAS_VALID_PHYS_ADDR_RANGE) || defined(MODULE)
+#if !defined(ARCH_HAS_VALID_PHYS_ADDR_RANGE)
 static inline int valid_phys_addr_range(phys_addr_t addr, size_t size)
 {
     return addr + size <= __pa(high_memory);
