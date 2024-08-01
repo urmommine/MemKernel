@@ -8,7 +8,8 @@ GKI_ROOT=$(pwd)
 display_usage() {
     echo "Usage: $0 [--cleanup | <integration-options>]"
     echo "  --cleanup:              Cleans up previous modifications made by the script."
-    echo "  <integration-options>:   Tells us how MemKernel should be intrigated into kernel source (Y, M, M-OUT)"
+    echo "  <integration-options>:   Tells us how MemKernel should be intrigated into kernel source (Y, M, M-OUT)."
+    echo "  <driver-name>:          Optional argument, should be used after <integration-options>. if not mentioned random name will be used."
     echo "  -h, --help:             Displays this usage information."
     echo "  (no args):              Sets up or updates the MemKernel environment to the latest commit (integration as Y)."
 }
@@ -41,7 +42,11 @@ perform_cleanup() {
 # Generates and inserts a random 6 char string to MemKernel/kernel/entry.c as driver device name
 insert_random_dev_name() {
     local random_name
-    random_name=$(tr -dc 'a-z' </dev/urandom | (head -c 6))
+    if [ -n "$1" ]; then
+        random_name="$1"
+    else
+        random_name=$(tr -dc 'a-z' </dev/urandom | (head -c 6))
+    fi
     sed -i "s/#define DEVICE_NAME \".*\"/#define DEVICE_NAME \"$random_name\"/" "$GKI_ROOT/MemKernel/kernel/entry.c"
     sed -i "s|#define DEVICE_NAME \"/dev/.*\"|#define DEVICE_NAME \"/dev/$random_name\"|" "$GKI_ROOT/MemKernel/user/driver.hpp"
     echo -e "\e[36mRandom Device Name: $random_name\e[0m"
@@ -73,7 +78,11 @@ setup_memkernel() {
         grep -q "memkernel" "$DRIVER_MAKEFILE" || printf "\nobj-\$(CONFIG_MEMKERNEL) += memkernel/\n" >> "$DRIVER_MAKEFILE" && echo "[+] Modified Makefile."
         grep -q "source \"drivers/memkernel/Kconfig\"" "$DRIVER_KCONFIG" || sed -i "/endmenu/i\source \"drivers/memkernel/Kconfig\"" "$DRIVER_KCONFIG" && echo "[+] Modified Kconfig."
     fi
-    insert_random_dev_name
+    if [ -n "$2" ]; then
+        insert_random_dev_name "$2"
+    else
+        insert_random_dev_name
+    fi
     echo '[+] Done.'
 }
 
