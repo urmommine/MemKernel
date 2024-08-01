@@ -42,8 +42,8 @@ perform_cleanup() {
 insert_random_dev_name() {
     local random_name
     random_name=$(tr -dc 'a-z' </dev/urandom | head -c 6)
-    sed -i "s/#define DEVICE_NAME \".*\"/#define DEVICE_NAME \"$random_name\"/" kernel/entry.c
-    sed -i "s|#define DEVICE_NAME \"/dev/.*\"|#define DEVICE_NAME \"/dev/$random_name\"|" user/driver.hpp
+    sed -i "s/#define DEVICE_NAME \".*\"/#define DEVICE_NAME \"$random_name\"/" "$GKI_ROOT/MemKernel/kernel/entry.c"
+    sed -i "s|#define DEVICE_NAME \"/dev/.*\"|#define DEVICE_NAME \"/dev/$random_name\"|" "$GKI_ROOT/MemKernel/user/driver.hpp"
     echo -e "\e[36mRandom Device Name: $random_name\e[0m"
 }
 
