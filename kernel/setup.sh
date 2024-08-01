@@ -71,7 +71,7 @@ setup_memkernel() {
         if [ "$1" = "M" ]; then
             sed -i 's/default y/default m/' kernel/Kconfig
         elif [ "$1" != "Y" ]; then
-            echo '[ERROR] "First argument not valid. should be any of these: Y, M, M-OUT"
+            echo "[ERROR] First argument not valid. should be any of these: Y, M, M-OUT"
             exit 128;
         fi
         cd "$DRIVER_DIR"
