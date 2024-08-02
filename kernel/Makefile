@@ -8,7 +8,7 @@ ifeq ($(KDIR),)
 	$(Error: KDIR is not set.)
 endif
 default:
-	make -C $(KDIR) M=$(PWD) ARCH=arm64 SUBARCH=arm64 modules
+	make -C $(KDIR) M=$(PWD) modules
 clean:
 	rm -f *.ko *.o *.mod.o *.mod.c *.symvers .*.cmd
 endif

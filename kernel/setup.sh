@@ -80,7 +80,10 @@ setup_memkernel() {
         # Add entries in Makefile and Kconfig if not already existing
         grep -q "memkernel" "$DRIVER_MAKEFILE" || printf "\nobj-\$(CONFIG_MEMKERNEL) += memkernel/\n" >> "$DRIVER_MAKEFILE" && echo "[+] Modified Makefile."
         grep -q "source \"drivers/memkernel/Kconfig\"" "$DRIVER_KCONFIG" || sed -i "/endmenu/i\source \"drivers/memkernel/Kconfig\"" "$DRIVER_KCONFIG" && echo "[+] Modified Kconfig."
+    else
+        sed -i 's/\$(CONFIG_MEMKERNEL)/m/g' "$GKI_ROOT/MemKernel/kernel/Makefile" && echo "[+] Modified our Makefile."
     fi
+
     if [ "$#" -ge 2 ]; then
         insert_random_dev_name "$2"
     else
