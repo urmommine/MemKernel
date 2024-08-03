@@ -16,6 +16,16 @@
 #include <linux/sched/task.h>
 #endif
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0))
+#include <linux/mmap_lock.h>
+#define MM_READ_LOCK(mm) mmap_read_lock(mm);
+#define MM_READ_UNLOCK(mm) mmap_read_unlock(mm);
+#else
+#include <linux/rwsem.h>
+#define MM_READ_LOCK(mm) down_read(&(mm)->mmap_sem);
+#define MM_READ_UNLOCK(mm) up_read(&(mm)->mmap_sem);
+#endif
+
 
 phys_addr_t translate_linear_address(struct mm_struct *mm, uintptr_t va)
 {
@@ -143,7 +153,9 @@ bool read_process_memory(
 	if (!mm) {
 		return false;
 	}
+	MM_READ_LOCK(mm);
 	pa = translate_linear_address(mm, addr);
+	MM_READ_UNLOCK(mm);
 	mmput(mm);
 	if (!pa) {
 		return false;
@@ -178,7 +190,9 @@ bool write_process_memory(
 	if (!mm) {
 		return false;
 	}
+	MM_READ_LOCK(mm);
 	pa = translate_linear_address(mm, addr);
+	MM_READ_UNLOCK(mm);
 	mmput(mm);
 	if (!pa) {
 		return false;

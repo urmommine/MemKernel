@@ -12,6 +12,17 @@
 #include <linux/sched/task.h>
 #endif
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0))
+#include <linux/mmap_lock.h>
+#define MM_READ_LOCK(mm) mmap_read_lock(mm);
+#define MM_READ_UNLOCK(mm) mmap_read_unlock(mm);
+#else
+#include <linux/rwsem.h>
+#define MM_READ_LOCK(mm) down_read(&(mm)->mmap_sem);
+#define MM_READ_UNLOCK(mm) up_read(&(mm)->mmap_sem);
+#endif
+
+
 uintptr_t get_module_base(pid_t pid, char *name)
 {
 	struct pid *pid_struct;
@@ -38,6 +49,8 @@ uintptr_t get_module_base(pid_t pid, char *name)
 		return false;
 	}
 
+	MM_READ_LOCK(mm);
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0))
 	vma_iter_init(&vmi, mm, 0);
 	for_each_vma(vmi, vma)
@@ -57,6 +70,7 @@ uintptr_t get_module_base(pid_t pid, char *name)
 		}
 	}
 
+	MM_READ_UNLOCK(mm);
 	mmput(mm);
 	return module_base;
 }
