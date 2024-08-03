@@ -12,7 +12,8 @@
 #include <asm/pgtable.h>
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
-#include <linux/sched/mm.h> // mmput , get_task_mm
+#include <linux/sched/mm.h>
+#include <linux/sched/task.h>
 #endif
 
 
