@@ -127,31 +127,28 @@ bool read_process_memory(
 	struct mm_struct *mm;
 	struct pid *pid_struct;
 	phys_addr_t pa;
-	bool success = false;
 
 	pid_struct = find_get_pid(pid);
 	if (!pid_struct) {
 		return false;
 	}
 	task = get_pid_task(pid_struct, PIDTYPE_PID);
+	put_pid(pid_struct);
 	if (!task) {
-		goto out_put_pid;
+		return false;
 	}
 	mm = get_task_mm(task);
+	put_task_struct(task);
 	if (!mm) {
-		goto out_put_pid;
+		return false;
 	}
 	pa = translate_linear_address(mm, addr);
-	if (!pa) {
-		goto out_mmput;
-	}
-	success = read_physical_address(pa, buffer, size);
-
-out_mmput:
 	mmput(mm);
-out_put_pid:
-	put_pid(pid_struct);
-	return success;
+	if (!pa) {
+		return false;
+	}
+
+	return read_physical_address(pa, buffer, size);
 }
 
 bool write_process_memory(
@@ -165,29 +162,26 @@ bool write_process_memory(
 	struct mm_struct *mm;
 	struct pid *pid_struct;
 	phys_addr_t pa;
-	bool success = false;
 
 	pid_struct = find_get_pid(pid);
 	if (!pid_struct) {
 		return false;
 	}
 	task = get_pid_task(pid_struct, PIDTYPE_PID);
+	put_pid(pid_struct);
 	if (!task) {
-		goto out_put_pid;
+		return false;
 	}
 	mm = get_task_mm(task);
+	put_task_struct(task);
 	if (!mm) {
-		goto out_put_pid;
+		return false;
 	}
 	pa = translate_linear_address(mm, addr);
-	if (!pa) {
-		goto out_mmput;
-	}
-	success = write_physical_address(pa, buffer, size);
-
-out_mmput:
 	mmput(mm);
-out_put_pid:
-	put_pid(pid_struct);
-	return success;
+	if (!pa) {
+		return false;
+	}
+
+	return write_physical_address(pa, buffer, size);
 }
