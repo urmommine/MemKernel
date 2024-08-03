@@ -8,7 +8,8 @@
 #define ARC_PATH_MAX 256
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
-#include <linux/sched/mm.h> // mmput , get_task_mm
+#include <linux/sched/mm.h>
+#include <linux/sched/task.h>
 #endif
 
 uintptr_t get_module_base(pid_t pid, char *name)
@@ -27,13 +28,13 @@ uintptr_t get_module_base(pid_t pid, char *name)
 		return false;
 	}
 	task = get_pid_task(pid_struct, PIDTYPE_PID);
+	put_pid(pid_struct);
 	if (!task) {
-		put_pid(pid_struct);
 		return false;
 	}
 	mm = get_task_mm(task);
+	put_task_struct(task);
 	if (!mm) {
-		put_pid(pid_struct);
 		return false;
 	}
 
@@ -57,6 +58,5 @@ uintptr_t get_module_base(pid_t pid, char *name)
 	}
 
 	mmput(mm);
-	put_pid(pid_struct);
 	return module_base;
 }
