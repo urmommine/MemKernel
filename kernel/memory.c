@@ -30,7 +30,7 @@
 phys_addr_t translate_linear_address(struct mm_struct *mm, uintptr_t va)
 {
 	pgd_t *pgd;
-#ifdef p4d_none
+#if __PAGETABLE_P4D_FOLDED == 1
 	p4d_t *p4d;
 #endif
 	pmd_t *pmd;
@@ -44,7 +44,7 @@ phys_addr_t translate_linear_address(struct mm_struct *mm, uintptr_t va)
 	if (pgd_none(*pgd) || pgd_bad(*pgd)) {
 		return 0;
 	}
-#ifdef p4d_none
+#if __PAGETABLE_P4D_FOLDED == 1
 	p4d = p4d_offset(pgd, va);
 	if (p4d_none(*p4d) || p4d_bad(*p4d)) {
 		return 0;
