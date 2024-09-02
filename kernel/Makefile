@@ -4,10 +4,11 @@ ifneq ($(KERNELRELEASE),)
 	memkernel-y := memory.o process.o entry.o
 else
 # normal makefile
-ifeq ($(KDIR),)
-	$(Error: KDIR is not set.)
-endif
 default:
+	# Assume kernel source is at KDIR or fail
+	ifeq ($(KDIR),)
+		$(error KDIR is not set. Please define KDIR to point to the kernel source directory.)
+	endif
 	make -C $(KDIR) M=$(PWD) modules
 clean:
 	rm -f *.ko *.o *.mod.o *.mod.c *.symvers .*.cmd
