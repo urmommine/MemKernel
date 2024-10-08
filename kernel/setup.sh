@@ -8,7 +8,7 @@ GKI_ROOT=$(pwd)
 display_usage() {
     echo "Usage: $0 [--cleanup | <integration-options>]"
     echo "  --cleanup:              Cleans up previous modifications made by the script."
-    echo "  <integration-options>:   Tells us how MemKernel should be intrigated into kernel source (Y, M, M-OUT)."
+    echo "  <integration-options>:   Tells us how MemKernel should be integrated into kernel source (Y, M)."
     echo "  <driver-name>:          Optional argument, should be used after <integration-options>. if not mentioned random name will be used."
     echo "  -h, --help:             Displays this usage information."
     echo "  (no args):              Sets up or updates the MemKernel environment to the latest commit (integration as Y)."
@@ -27,7 +27,7 @@ initialize_variables() {
     DRIVER_KCONFIG=$DRIVER_DIR/Kconfig
 }
 
-# Reverts modifications made by this script (for all integration Y, M, M-OUT )
+# Reverts modifications made by this script (for all integration Y, M)
 perform_cleanup() {
     echo "[+] Cleaning up..."
     if [ -n "$DRIVER_DIR" ]; then
@@ -52,9 +52,9 @@ insert_random_dev_name() {
     echo -e "\e[36mDevice Name: $random_name\e[0m"
 }
 
-# Sets up or update MemKernel environment for all integration (Y, M, M-OUT)
+# Sets up or update MemKernel environment for all integration (Y, M)
 setup_memkernel() {
-    if [ "$1" != "M-OUT" ] && [ -z "$DRIVER_DIR" ]; then
+    if [ -z "$DRIVER_DIR" ]; then
         echo '[ERROR] "drivers/" directory not found.'
         exit 127;
     fi
@@ -67,22 +67,18 @@ setup_memkernel() {
     git pull && echo "[+] Repository updated."
     git checkout main && echo "[-] Switched to main branch."
 
-    if [ "$1" != "M-OUT" ]; then
-        if [ "$1" = "M" ]; then
-            sed -i 's/default y/default m/' kernel/Kconfig
-        elif [ "$1" != "Y" ]; then
-            echo "[ERROR] First argument not valid. should be any of these: Y, M, M-OUT"
-            exit 128;
-        fi
-        cd "$DRIVER_DIR"
-        ln -sf "$(realpath --relative-to="$DRIVER_DIR" "$GKI_ROOT/MemKernel/kernel")" "memkernel" && echo "[+] Symlink created."
-
-        # Add entries in Makefile and Kconfig if not already existing
-        grep -q "memkernel" "$DRIVER_MAKEFILE" || printf "\nobj-\$(CONFIG_MEMKERNEL) += memkernel/\n" >> "$DRIVER_MAKEFILE" && echo "[+] Modified Makefile."
-        grep -q "source \"drivers/memkernel/Kconfig\"" "$DRIVER_KCONFIG" || sed -i "/endmenu/i\source \"drivers/memkernel/Kconfig\"" "$DRIVER_KCONFIG" && echo "[+] Modified Kconfig."
-    else
-        sed -i 's/\$(CONFIG_MEMKERNEL)/m/g' "$GKI_ROOT/MemKernel/kernel/Makefile" && echo "[+] Modified our Makefile."
+    if [ "$1" = "M" ]; then
+        sed -i 's/default y/default m/' kernel/Kconfig
+    elif [ "$1" != "Y" ]; then
+        echo "[ERROR] First argument not valid. should be any of these: Y, M"
+        exit 128;
     fi
+    cd "$DRIVER_DIR"
+    ln -sf "$(realpath --relative-to="$DRIVER_DIR" "$GKI_ROOT/MemKernel/kernel")" "memkernel" && echo "[+] Symlink created."
+
+    # Add entries in Makefile and Kconfig if not already existing
+    grep -q "memkernel" "$DRIVER_MAKEFILE" || printf "\nobj-\$(CONFIG_MEMKERNEL) += memkernel/\n" >> "$DRIVER_MAKEFILE" && echo "[+] Modified Makefile."
+    grep -q "source \"drivers/memkernel/Kconfig\"" "$DRIVER_KCONFIG" || sed -i "/endmenu/i\source \"drivers/memkernel/Kconfig\"" "$DRIVER_KCONFIG" && echo "[+] Modified Kconfig."
 
     if [ "$#" -ge 2 ]; then
         insert_random_dev_name "$2"
