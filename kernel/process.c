@@ -1,11 +1,9 @@
 #include "process.h"
 #include <linux/sched.h>
 #include <linux/module.h>
-#include <linux/tty.h>
+#include <linux/fs.h>
 #include <linux/mm.h>
 #include <linux/version.h>
-
-#define ARC_PATH_MAX 256
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
 #include <linux/sched/mm.h>

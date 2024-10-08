@@ -1,5 +1,14 @@
+// MIT License
+/*
+ * Memory Operation driver for Linux Android
+ *
+ * Original author:  Jiang-Night
+ * Current maintainer: Poko
+ *
+*/
+
 #include <linux/module.h>
-#include <linux/tty.h>
+#include <linux/fs.h>
 #include <linux/miscdevice.h>
 #include "comm.h"
 #include "memory.h"
@@ -7,15 +16,15 @@
 
 #define DEVICE_NAME "phmeop"
 
-int dispatch_open(struct inode *node, struct file *file) {
+static int dispatch_open(struct inode *node, struct file *file) {
 	return 0;
 }
 
-int dispatch_close(struct inode *node, struct file *file) {
+static int dispatch_close(struct inode *node, struct file *file) {
 	return 0;
 }
 
-long dispatch_ioctl(struct file *const file, unsigned int const cmd, unsigned long const arg)
+static long dispatch_ioctl(struct file *const file, unsigned int const cmd, unsigned long const arg)
 {
 	COPY_MEMORY cm;
 	MODULE_BASE mb;
@@ -28,7 +37,7 @@ long dispatch_ioctl(struct file *const file, unsigned int const cmd, unsigned lo
 		if (copy_from_user(&cm, (void __user *)arg, sizeof(cm)) != 0) {
 			return -1;
 		}
-		if (read_process_memory(cm.pid, cm.addr, cm.buffer, cm.size) == false) {
+		if (readwrite_process_memory(cm.pid, cm.addr, cm.buffer, cm.size, false) == false) {
 			return -1;
 		}
 		break;
@@ -38,7 +47,7 @@ long dispatch_ioctl(struct file *const file, unsigned int const cmd, unsigned lo
 		if (copy_from_user(&cm, (void __user *)arg, sizeof(cm)) != 0) {
 			return -1;
 		}
-		if (write_process_memory(cm.pid, cm.addr, cm.buffer, cm.size) == false) {
+		if (readwrite_process_memory(cm.pid, cm.addr, cm.buffer, cm.size, true) == false) {
 			return -1;
 		}
 		break;
@@ -60,35 +69,35 @@ long dispatch_ioctl(struct file *const file, unsigned int const cmd, unsigned lo
 	return 0;
 }
 
-struct file_operations dispatch_functions = {
+static struct file_operations dispatch_functions = {
 	.owner = THIS_MODULE,
 	.open = dispatch_open,
 	.release = dispatch_close,
 	.unlocked_ioctl = dispatch_ioctl,
 };
 
-struct miscdevice misc = {
+static struct miscdevice misc = {
 	.minor = MISC_DYNAMIC_MINOR,
 	.name = DEVICE_NAME,
 	.fops = &dispatch_functions,
 };
 
-int __init driver_entry(void)
+int __init memkernel_entry(void)
 {
 	int ret;
-	printk("[+] driver_entry");
+	printk("[+] memkernel_entry");
 	ret = misc_register(&misc);
 	return ret;
 }
 
-void __exit driver_unload(void)
+void __exit memkernel_unload(void)
 {
-	printk("[+] driver_unload");
+	printk("[+] memkernel_unload");
 	misc_deregister(&misc);
 }
 
-module_init(driver_entry);
-module_exit(driver_unload);
+module_init(memkernel_entry);
+module_exit(memkernel_unload);
 
 MODULE_DESCRIPTION("Linux Kernel.");
 MODULE_LICENSE("GPL");

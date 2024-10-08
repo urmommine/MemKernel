@@ -1,5 +1,5 @@
 #include "memory.h"
-#include <linux/tty.h>
+#include <linux/fs.h>
 #include <linux/io.h>
 #include <linux/mm.h>
 #include <linux/slab.h>
@@ -29,7 +29,7 @@
 
 static DEFINE_SPINLOCK(phys_addr_lock);
 
-phys_addr_t translate_linear_address(struct mm_struct *mm, uintptr_t va)
+static phys_addr_t translate_linear_address(struct mm_struct *mm, uintptr_t va)
 {
 	pgd_t *pgd;
 #ifdef __PAGETABLE_P4D_FOLDED
@@ -85,7 +85,7 @@ static inline int memk_valid_phys_addr_range(phys_addr_t addr, size_t size)
 #define IS_VALID_PHYS_ADDR_RANGE(x,y) valid_phys_addr_range(x,y)
 #endif
 
-bool read_physical_address(phys_addr_t pa, void *buffer, size_t size)
+static bool read_physical_address(phys_addr_t pa, void *buffer, size_t size)
 {
 	void *mapped;
 	unsigned long flags;
@@ -114,7 +114,7 @@ bool read_physical_address(phys_addr_t pa, void *buffer, size_t size)
 	return true;
 }
 
-bool write_physical_address(phys_addr_t pa, void *buffer, size_t size)
+static bool write_physical_address(phys_addr_t pa, void *buffer, size_t size)
 {
 	void *mapped;
 	unsigned long flags;
@@ -143,11 +143,12 @@ bool write_physical_address(phys_addr_t pa, void *buffer, size_t size)
 	return true;
 }
 
-bool read_process_memory(
+bool readwrite_process_memory(
 	pid_t pid,
 	uintptr_t addr,
 	void *buffer,
-	size_t size)
+	size_t size,
+	bool iswrite)
 {
 
 	struct task_struct *task;
@@ -181,46 +182,5 @@ bool read_process_memory(
 		return false;
 	}
 
-	return read_physical_address(pa, buffer, size);
-}
-
-bool write_process_memory(
-	pid_t pid,
-	uintptr_t addr,
-	void *buffer,
-	size_t size)
-{
-
-	struct task_struct *task;
-	struct mm_struct *mm;
-	struct pid *pid_struct;
-	phys_addr_t pa;
-
-	if (size <= 0 || size > MAX_MEMOP_SIZE || buffer == NULL) {
-		return false;
-	}
-
-	pid_struct = find_get_pid(pid);
-	if (!pid_struct) {
-		return false;
-	}
-	task = get_pid_task(pid_struct, PIDTYPE_PID);
-	put_pid(pid_struct);
-	if (!task) {
-		return false;
-	}
-	mm = get_task_mm(task);
-	put_task_struct(task);
-	if (!mm) {
-		return false;
-	}
-	MM_READ_LOCK(mm);
-	pa = translate_linear_address(mm, addr);
-	MM_READ_UNLOCK(mm);
-	mmput(mm);
-	if (!pa) {
-		return false;
-	}
-
-	return write_physical_address(pa, buffer, size);
+	return (iswrite ? write_physical_address(pa, buffer, size) : read_physical_address(pa, buffer, size));
 }
