@@ -10,6 +10,7 @@
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/miscdevice.h>
+#include <linux/uaccess.h>
 #include "comm.h"
 #include "memory.h"
 #include "process.h"
