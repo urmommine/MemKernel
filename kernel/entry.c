@@ -17,9 +17,9 @@ int dispatch_close(struct inode *node, struct file *file) {
 
 long dispatch_ioctl(struct file *const file, unsigned int const cmd, unsigned long const arg)
 {
-	static COPY_MEMORY cm;
-	static MODULE_BASE mb;
-	static char name[0x100] = {0};
+	COPY_MEMORY cm;
+	MODULE_BASE mb;
+	char name[0x100] = {0};
 
 	switch (cmd)
 	{
@@ -92,4 +92,4 @@ module_exit(driver_unload);
 
 MODULE_DESCRIPTION("Linux Kernel.");
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Uiwbkd");
+MODULE_AUTHOR("Linux");

@@ -1,3 +1,6 @@
+#ifndef MEMKERNEL_COMM_H
+#define MEMKERNEL_COMM_H
+
 typedef struct _COPY_MEMORY
 {
 	pid_t pid;
@@ -19,3 +22,5 @@ enum OPERATIONS
 	OP_WRITE_MEM = 0x802,
 	OP_MODULE_BASE = 0x803,
 };
+
+#endif

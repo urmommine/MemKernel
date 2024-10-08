@@ -5,6 +5,7 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 #include <linux/version.h>
+#include <linux/spinlock.h>
 
 #include <asm/cpu.h>
 #include <asm/io.h>
@@ -26,11 +27,12 @@
 #define MM_READ_UNLOCK(mm) up_read(&(mm)->mmap_sem);
 #endif
 
+static DEFINE_SPINLOCK(phys_addr_lock);
 
 phys_addr_t translate_linear_address(struct mm_struct *mm, uintptr_t va)
 {
 	pgd_t *pgd;
-#if __PAGETABLE_P4D_FOLDED == 1
+#ifdef __PAGETABLE_P4D_FOLDED
 	p4d_t *p4d;
 #endif
 	pmd_t *pmd;
@@ -44,7 +46,7 @@ phys_addr_t translate_linear_address(struct mm_struct *mm, uintptr_t va)
 	if (pgd_none(*pgd) || pgd_bad(*pgd)) {
 		return 0;
 	}
-#if __PAGETABLE_P4D_FOLDED == 1
+#ifdef __PAGETABLE_P4D_FOLDED
 	p4d = p4d_offset(pgd, va);
 	if (p4d_none(*p4d) || p4d_bad(*p4d)) {
 		return 0;
@@ -86,6 +88,7 @@ static inline int memk_valid_phys_addr_range(phys_addr_t addr, size_t size)
 bool read_physical_address(phys_addr_t pa, void *buffer, size_t size)
 {
 	void *mapped;
+	unsigned long flags;
 
 	if (!pfn_valid(__phys_to_pfn(pa))) {
 		return false;
@@ -93,21 +96,28 @@ bool read_physical_address(phys_addr_t pa, void *buffer, size_t size)
 	if (!IS_VALID_PHYS_ADDR_RANGE(pa, size)) {
 		return false;
 	}
+
+	spin_lock_irqsave(&phys_addr_lock, flags);
+
 	mapped = ioremap_cache(pa, size);
 	if (!mapped) {
+		spin_unlock_irqrestore(&phys_addr_lock, flags);
 		return false;
 	}
 	if (copy_to_user(buffer, mapped, size)) {
 		iounmap(mapped);
+		spin_unlock_irqrestore(&phys_addr_lock, flags);
 		return false;
 	}
 	iounmap(mapped);
+	spin_unlock_irqrestore(&phys_addr_lock, flags);
 	return true;
 }
 
 bool write_physical_address(phys_addr_t pa, void *buffer, size_t size)
 {
 	void *mapped;
+	unsigned long flags;
 
 	if (!pfn_valid(__phys_to_pfn(pa))) {
 		return false;
@@ -115,15 +125,21 @@ bool write_physical_address(phys_addr_t pa, void *buffer, size_t size)
 	if (!IS_VALID_PHYS_ADDR_RANGE(pa, size)) {
 		return false;
 	}
+
+	spin_lock_irqsave(&phys_addr_lock, flags);
+
 	mapped = ioremap_cache(pa, size);
 	if (!mapped) {
+		spin_unlock_irqrestore(&phys_addr_lock, flags);
 		return false;
 	}
 	if (copy_from_user(mapped, buffer, size)) {
 		iounmap(mapped);
+		spin_unlock_irqrestore(&phys_addr_lock, flags);
 		return false;
 	}
 	iounmap(mapped);
+	spin_unlock_irqrestore(&phys_addr_lock, flags);
 	return true;
 }
 
@@ -138,6 +154,10 @@ bool read_process_memory(
 	struct mm_struct *mm;
 	struct pid *pid_struct;
 	phys_addr_t pa;
+
+	if (size <= 0 || size > MAX_MEMOP_SIZE || buffer == NULL) {
+		return false;
+	}
 
 	pid_struct = find_get_pid(pid);
 	if (!pid_struct) {
@@ -175,6 +195,10 @@ bool write_process_memory(
 	struct mm_struct *mm;
 	struct pid *pid_struct;
 	phys_addr_t pa;
+
+	if (size <= 0 || size > MAX_MEMOP_SIZE || buffer == NULL) {
+		return false;
+	}
 
 	pid_struct = find_get_pid(pid);
 	if (!pid_struct) {
