@@ -88,7 +88,6 @@ static inline int memk_valid_phys_addr_range(phys_addr_t addr, size_t size)
 static bool read_physical_address(phys_addr_t pa, void *buffer, size_t size)
 {
 	void *mapped;
-	unsigned long flags;
 
 	if (!pfn_valid(__phys_to_pfn(pa))) {
 		return false;
@@ -97,27 +96,26 @@ static bool read_physical_address(phys_addr_t pa, void *buffer, size_t size)
 		return false;
 	}
 
-	spin_lock_irqsave(&phys_addr_lock, flags);
+	spin_lock(&phys_addr_lock);
 
 	mapped = ioremap_cache(pa, size);
 	if (!mapped) {
-		spin_unlock_irqrestore(&phys_addr_lock, flags);
+		spin_unlock(&phys_addr_lock);
 		return false;
 	}
 	if (copy_to_user(buffer, mapped, size)) {
 		iounmap(mapped);
-		spin_unlock_irqrestore(&phys_addr_lock, flags);
+		spin_unlock(&phys_addr_lock);
 		return false;
 	}
 	iounmap(mapped);
-	spin_unlock_irqrestore(&phys_addr_lock, flags);
+	spin_unlock(&phys_addr_lock);
 	return true;
 }
 
 static bool write_physical_address(phys_addr_t pa, void *buffer, size_t size)
 {
 	void *mapped;
-	unsigned long flags;
 
 	if (!pfn_valid(__phys_to_pfn(pa))) {
 		return false;
@@ -126,20 +124,20 @@ static bool write_physical_address(phys_addr_t pa, void *buffer, size_t size)
 		return false;
 	}
 
-	spin_lock_irqsave(&phys_addr_lock, flags);
+	spin_lock(&phys_addr_lock);
 
 	mapped = ioremap_cache(pa, size);
 	if (!mapped) {
-		spin_unlock_irqrestore(&phys_addr_lock, flags);
+		spin_unlock(&phys_addr_lock);
 		return false;
 	}
 	if (copy_from_user(mapped, buffer, size)) {
 		iounmap(mapped);
-		spin_unlock_irqrestore(&phys_addr_lock, flags);
+		spin_unlock(&phys_addr_lock);
 		return false;
 	}
 	iounmap(mapped);
-	spin_unlock_irqrestore(&phys_addr_lock, flags);
+	spin_unlock(&phys_addr_lock);
 	return true;
 }
 
