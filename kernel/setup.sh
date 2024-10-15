@@ -92,6 +92,10 @@ setup_memkernel() {
 }
 
 # Process command-line arguments
+if [ "$#" -eq 0 ]; then
+    set -- Y
+fi
+
 case "$1" in
     -h|--help)
         display_usage
