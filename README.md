@@ -17,4 +17,4 @@ curl -LSs "https://raw.githubusercontent.com/Poko-Apps/MemKernel/main/kernel/set
 ```curl -LSs "https://raw.githubusercontent.com/Poko-Apps/MemKernel/main/kernel/setup.sh" | bash -s M myname```
 
 ## Connect
-Just in, you can join this [telegram group](https://t.me/memkernel).
+Join this [telegram group](https://t.me/ogmemkernel) for discussion.
