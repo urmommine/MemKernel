@@ -6,7 +6,7 @@
 #include <linux/uaccess.h>
 #include <linux/version.h>
 #include <linux/spinlock.h>
-#include <linux/minmax.h>
+#include <linux/kernel.h>
 
 #include <asm/cpu.h>
 #include <asm/io.h>
