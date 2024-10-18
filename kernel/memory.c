@@ -5,7 +5,6 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 #include <linux/version.h>
-#include <linux/spinlock.h>
 #include <linux/kernel.h>
 
 #include <asm/cpu.h>
@@ -28,7 +27,6 @@
 #define MM_READ_UNLOCK(mm) up_read(&(mm)->mmap_sem);
 #endif
 
-static DEFINE_SPINLOCK(phys_addr_lock);
 
 static phys_addr_t translate_linear_address(struct mm_struct *mm, uintptr_t va)
 {
@@ -165,7 +163,6 @@ ssize_t readwrite_process_memory(
 	}
 
 	MM_READ_LOCK(mm);
-	spin_lock(&phys_addr_lock);
 	while(size > 0)
 	{
 		pa = translate_linear_address(mm, addr);
@@ -186,7 +183,6 @@ ssize_t readwrite_process_memory(
 		buffer += max_chunk;
 		addr += max_chunk;
 	}
-	spin_unlock(&phys_addr_lock);
 	MM_READ_UNLOCK(mm);
 	mmput(mm);
 	return (count > 0 ? count : -1);

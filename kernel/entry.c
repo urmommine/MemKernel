@@ -11,17 +11,24 @@
 #include <linux/fs.h>
 #include <linux/miscdevice.h>
 #include <linux/uaccess.h>
+#include <linux/mutex.h>
 #include "comm.h"
 #include "memory.h"
 #include "process.h"
 
 #define DEVICE_NAME "phmeop"
 
+static DEFINE_MUTEX(driver_mutex);
+
+
 static int dispatch_open(struct inode *node, struct file *file) {
+	if (!mutex_trylock(&driver_mutex))
+		return -EBUSY;
 	return 0;
 }
 
 static int dispatch_close(struct inode *node, struct file *file) {
+	mutex_unlock(&driver_mutex);
 	return 0;
 }
 
