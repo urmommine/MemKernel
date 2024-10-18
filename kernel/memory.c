@@ -6,6 +6,7 @@
 #include <linux/uaccess.h>
 #include <linux/version.h>
 #include <linux/spinlock.h>
+#include <linux/minmax.h>
 
 #include <asm/cpu.h>
 #include <asm/io.h>
@@ -53,7 +54,7 @@ static phys_addr_t translate_linear_address(struct mm_struct *mm, uintptr_t va)
 	}
 	pud = pud_offset(p4d, va);
 #else
-    pud = pud_offset(pgd, va);
+	pud = pud_offset(pgd, va);
 #endif
 	if (pud_none(*pud) || pud_bad(*pud)) {
 		return 0;
@@ -85,63 +86,51 @@ static inline int memk_valid_phys_addr_range(phys_addr_t addr, size_t size)
 #define IS_VALID_PHYS_ADDR_RANGE(x,y) valid_phys_addr_range(x,y)
 #endif
 
-static bool read_physical_address(phys_addr_t pa, void *buffer, size_t size)
+static size_t read_physical_address(phys_addr_t pa, void *buffer, size_t size)
 {
 	void *mapped;
 
 	if (!pfn_valid(__phys_to_pfn(pa))) {
-		return false;
+		return 0;
 	}
 	if (!IS_VALID_PHYS_ADDR_RANGE(pa, size)) {
-		return false;
+		return 0;
 	}
-
-	spin_lock(&phys_addr_lock);
-
 	mapped = ioremap_cache(pa, size);
 	if (!mapped) {
-		spin_unlock(&phys_addr_lock);
-		return false;
+		return 0;
 	}
 	if (copy_to_user(buffer, mapped, size)) {
 		iounmap(mapped);
-		spin_unlock(&phys_addr_lock);
-		return false;
+		return 0;
 	}
 	iounmap(mapped);
-	spin_unlock(&phys_addr_lock);
-	return true;
+	return size;
 }
 
-static bool write_physical_address(phys_addr_t pa, void *buffer, size_t size)
+static size_t write_physical_address(phys_addr_t pa, void *buffer, size_t size)
 {
 	void *mapped;
 
 	if (!pfn_valid(__phys_to_pfn(pa))) {
-		return false;
+		return 0;
 	}
 	if (!IS_VALID_PHYS_ADDR_RANGE(pa, size)) {
-		return false;
+		return 0;
 	}
-
-	spin_lock(&phys_addr_lock);
-
 	mapped = ioremap_cache(pa, size);
 	if (!mapped) {
-		spin_unlock(&phys_addr_lock);
-		return false;
+		return 0;
 	}
 	if (copy_from_user(mapped, buffer, size)) {
 		iounmap(mapped);
-		spin_unlock(&phys_addr_lock);
-		return false;
+		return 0;
 	}
 	iounmap(mapped);
-	spin_unlock(&phys_addr_lock);
-	return true;
+	return size;
 }
 
-bool readwrite_process_memory(
+ssize_t readwrite_process_memory(
 	pid_t pid,
 	uintptr_t addr,
 	void *buffer,
@@ -153,32 +142,52 @@ bool readwrite_process_memory(
 	struct mm_struct *mm;
 	struct pid *pid_struct;
 	phys_addr_t pa;
+	size_t max_chunk;
+	size_t count = 0;
 
-	if (size <= 0 || size > MAX_MEMOP_SIZE || buffer == NULL) {
-		return false;
+	if (size <= 0 || buffer == NULL) {
+		return -1;
 	}
 
 	pid_struct = find_get_pid(pid);
 	if (!pid_struct) {
-		return false;
+		return -1;
 	}
 	task = get_pid_task(pid_struct, PIDTYPE_PID);
 	put_pid(pid_struct);
 	if (!task) {
-		return false;
+		return -1;
 	}
 	mm = get_task_mm(task);
 	put_task_struct(task);
 	if (!mm) {
-		return false;
-	}
-	MM_READ_LOCK(mm);
-	pa = translate_linear_address(mm, addr);
-	MM_READ_UNLOCK(mm);
-	mmput(mm);
-	if (!pa) {
-		return false;
+		return -1;
 	}
 
-	return (iswrite ? write_physical_address(pa, buffer, size) : read_physical_address(pa, buffer, size));
+	MM_READ_LOCK(mm);
+	spin_lock(&phys_addr_lock);
+	while(size > 0)
+	{
+		pa = translate_linear_address(mm, addr);
+		if (!pa)
+			break;
+
+		max_chunk = min(PAGE_SIZE - (addr & (PAGE_SIZE - 1)), min(size, PAGE_SIZE));
+
+		if (iswrite
+			? !write_physical_address(pa, buffer, max_chunk)
+			: !read_physical_address(pa, buffer, max_chunk))
+		{
+			break;
+		}
+
+		count += max_chunk;
+		size -= max_chunk;
+		buffer += max_chunk;
+		addr += max_chunk;
+	}
+	spin_unlock(&phys_addr_lock);
+	MM_READ_UNLOCK(mm);
+	mmput(mm);
+	return (count > 0 ? count : -1);
 }

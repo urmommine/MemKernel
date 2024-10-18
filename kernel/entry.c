@@ -27,8 +27,8 @@ static int dispatch_close(struct inode *node, struct file *file) {
 
 static long dispatch_ioctl(struct file *const file, unsigned int const cmd, unsigned long const arg)
 {
-	COPY_MEMORY cm;
-	MODULE_BASE mb;
+	struct CopyMemory cm;
+	struct ModuleBase mb;
 	char name[0x100] = {0};
 
 	switch (cmd)
@@ -38,20 +38,14 @@ static long dispatch_ioctl(struct file *const file, unsigned int const cmd, unsi
 		if (copy_from_user(&cm, (void __user *)arg, sizeof(cm)) != 0) {
 			return -1;
 		}
-		if (readwrite_process_memory(cm.pid, cm.addr, cm.buffer, cm.size, false) == false) {
-			return -1;
-		}
-		break;
+		return readwrite_process_memory(cm.pid, cm.addr, cm.buffer, cm.size, false);
 	}
 	case OP_WRITE_MEM:
 	{
 		if (copy_from_user(&cm, (void __user *)arg, sizeof(cm)) != 0) {
 			return -1;
 		}
-		if (readwrite_process_memory(cm.pid, cm.addr, cm.buffer, cm.size, true) == false) {
-			return -1;
-		}
-		break;
+		return readwrite_process_memory(cm.pid, cm.addr, cm.buffer, cm.size, true);
 	}
 	case OP_MODULE_BASE:
 	{
