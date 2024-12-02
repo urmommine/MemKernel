@@ -1,6 +1,6 @@
 ifneq ($(KERNELRELEASE),)
 # kbuild part of makefile
-	obj-$(CONFIG_MEMKERNEL)  := memkernel.o
+	obj-$(CONFIG_MEMKERNEL)  := phmeop_memk.o
 	memkernel-y := memory.o process.o entry.o
 else
 # normal makefile
