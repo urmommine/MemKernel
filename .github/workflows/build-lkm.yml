@@ -1,4 +1,4 @@
-name: Build LKM for kernel_mem_rw
+name: Build LKM for MemKernel
 on:
   push:
     branches: ["master"]
