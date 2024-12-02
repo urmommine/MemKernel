@@ -1,11 +1,11 @@
 name: Build LKM for MemKernel
 on:
   push:
-    branches: ["master"]
+    branches: ["main"]
     paths:
       - ".github/workflows/build-lkm.yml"
   pull_request:
-    branches: ["master"]
+    branches: ["main"]
     paths:
       - ".github/workflows/build-lkm.yml"
   workflow_dispatch:
